@@ -11,8 +11,12 @@
         <h1><a href="{{ url_for('index') }}" style="text-decoration: none; color: inherit;">code.line</a></h1>
         <div class="glass-card">
             <form id="snippetForm" action="{{ url_for('new_snippet') }}" method="POST">
-                <input name="title" type="text" placeholder="Snippet title" required>
-                <textarea id="codeInput" rows="10" placeholder="Your code here..." required></textarea>
+                <input name="title" type="text" id="titleInput" placeholder="Snippet title (e.g., script.py)" required>
+                <div style="position: relative;">
+                    <div id="codeEditor"></div>
+                    <div id="languageDisplay" class="language-display">Plain Text</div>
+                </div>
+                <textarea id="codeInput" name="code" style="display: none;"></textarea>
                 
                 <div class="form-options">
                     <div class="option-group">
@@ -40,17 +44,94 @@
                         </div>
                     </div>
                 </div>
-                <input type="hidden" name="code" id="encodedCode">
+                <input type="hidden" name="codeEncoded" id="encodedCode">
                 <button type="submit">Save Snippet</button>
             </form>
         </div>
     </div>
 
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.47.0/min/vs/loader.min.js"></script>
     <script>
-        document.getElementById("snippetForm").addEventListener("submit", function (e) {
-            const rawCode = document.getElementById("codeInput").value;
-            const encoded = btoa(unescape(encodeURIComponent(rawCode)));
-            document.getElementById("encodedCode").value = encoded;
+        const languageMap = {
+            '.py': 'python',
+            '.js': 'javascript',
+            '.html': 'html',
+            '.css': 'css',
+            '.json': 'json',
+            '.sh': 'shell',
+            '.java': 'java',
+            '.c': 'c',
+            '.cpp': 'cpp',
+            '.h': 'cpp',
+            '.rb': 'ruby',
+            '.go': 'go',
+            '.ts': 'typescript',
+            '.php': 'php',
+            '.rs': 'rust',
+            '.md': 'markdown',
+            '.sql': 'sql',
+            '.xml': 'xml'
+        };
+
+        const languageNames = {
+            'python': 'Python',
+            'javascript': 'JavaScript',
+            'html': 'HTML',
+            'css': 'CSS',
+            'json': 'JSON',
+            'shell': 'Bash',
+            'java': 'Java',
+            'c': 'C',
+            'cpp': 'C++',
+            'ruby': 'Ruby',
+            'go': 'Go',
+            'typescript': 'TypeScript',
+            'php': 'PHP',
+            'rust': 'Rust',
+            'markdown': 'Markdown',
+            'sql': 'SQL',
+            'xml': 'XML'
+        };
+
+        require.config({ paths: { 'vs': 'https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.47.0/min/vs' }});
+
+        require(['vs/editor/editor.main'], function() {
+            window.editor = monaco.editor.create(document.getElementById('codeEditor'), {
+                value: "",
+                language: 'plaintext',
+                theme: 'vs-dark',
+                automaticLayout: true,
+                fontSize: 14,
+                lineNumbers: 'on',
+                autoIndent: 'full',
+                tabSize: 4,
+                minimap: { enabled: false }
+            });
+
+            document.getElementById('titleInput').addEventListener('input', function() {
+                const title = this.value;
+                const dotIndex = title.lastIndexOf('.');
+                let language = 'plaintext';
+                
+                if (dotIndex > -1) {
+                    const ext = title.substring(dotIndex).toLowerCase();
+                    language = languageMap[ext] || 'plaintext';
+                }
+                
+                monaco.editor.setModelLanguage(editor.getModel(), language);
+                document.getElementById('languageDisplay').textContent = 
+                    languageNames[language] || 'Plain Text';
+            });
+
+            document.getElementById("snippetForm").addEventListener("submit", function(e) {
+                e.preventDefault();
+                
+                const rawCode = window.editor.getValue()
+                const encoded = btoa(unescape(encodeURIComponent(rawCode)));
+                document.getElementById("encodedCode").value = encoded;
+                
+                this.submit();
+            });
         });
     </script>
 </body>

@@ -1,12 +1,9 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8" />
-    <title>code.line</title>
-    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}" />
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.11.1/styles/github-dark.min.css">
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.11.1/highlight.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/highlightjs-line-numbers.js/dist/highlightjs-line-numbers.min.js"></script>
+    <meta charset="UTF-8">
+    <title>{{ title }} - code.line</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
     <link rel="icon" href="{{ url_for('static', filename='favicon.png') }}" type="image/png">
 </head>
 <body>
@@ -15,44 +12,66 @@
             <h1 style="margin: 0;">
                 <a href="{{ url_for('index') }}" style="text-decoration: none; color: inherit;">code.line</a>
             </h1>
-            <button
-              id="copyLinkBtn"
-              title="Copy current page link"
-              style="
-                border: none;
-                color: white;
-                padding: 0.4em 1em;
-                border-radius: 4px;
-                cursor: pointer;
-                font-size: 1rem;
-              "
-            >
-              Copy Link
+            <button id="copyLinkBtn" title="Copy current page link" class="copy-button">
+                Copy Link
             </button>
         </header>
 
         <div class="glass-card">
             <h2>{{ title }}</h2>
-            <pre class="code-textbox"><code class="language-{{ language }}">{{ code }}</code></pre>
+            <div id="viewerContainer"></div>
             <p style="font-size: 0.9rem; color: #888;">ID: {{ snippet_id }}</p>
         </div>
     </div>
 
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.47.0/min/vs/loader.min.js"></script>
     <script>
-        hljs.highlightAll();
-        hljs.initLineNumbersOnLoad();
+        const languageMap = {
+            'python': 'python',
+            'javascript': 'javascript',
+            'html': 'html',
+            'css': 'css',
+            'json': 'json',
+            'bash': 'shell',
+            'java': 'java',
+            'c': 'c',
+            'cpp': 'cpp',
+            'ruby': 'ruby',
+            'go': 'go',
+            'typescript': 'typescript',
+            'php': 'php',
+            'rust': 'rust',
+            'markdown': 'markdown',
+            'sql': 'sql',
+            'xml': 'xml'
+        };
 
-        document.getElementById("copyLinkBtn").addEventListener("click", function () {
-            const snippetURL = window.location.href;
-            navigator.clipboard.writeText(snippetURL).then(
-            () => {
-                alert("Link copied to clipboard!");
-            },
-            (err) => {
-                alert("Failed to copy link: " + err);
-            }
-            );
+        require.config({ paths: { 'vs': 'https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.47.0/min/vs' }});
+
+        require(['vs/editor/editor.main'], function() {
+            const language = "{{ language }}";
+            const monacoLanguage = languageMap[language] || 'plaintext';
+            
+            const codeContent = `{{ code | safe }}`;
+            
+            const editor = monaco.editor.create(document.getElementById('viewerContainer'), {
+                value: codeContent,
+                language: monacoLanguage,
+                theme: 'vs-dark',
+                readOnly: true,
+                lineNumbers: 'on',
+                scrollBeyondLastLine: false,
+                minimap: { enabled: false },
+                automaticLayout: true,
+                renderWhitespace: 'none',
+                fontSize: 14
+            });
+
+            document.getElementById("copyLinkBtn").addEventListener("click", function() {
+                navigator.clipboard.writeText(window.location.href)
+                    .then(() => alert("Link copied to clipboard!"))
+                    .catch(err => alert("Failed to copy link: " + err));
+            });
         });
     </script>
-</body>
-</html>
+</body

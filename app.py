@@ -44,7 +44,7 @@ def index():
 @app.route("/new", methods=["POST"])
 def new_snippet():
     title = request.form.get("title")
-    encoded_code = request.form.get("code")
+    encoded_code = request.form.get("codeEncoded")
     password = request.form.get("password")
     expiration_hours = request.form.get("expiration", "0")
     burn_after_read = request.form.get("burn_after_read") == "on"
@@ -100,7 +100,7 @@ def view_snippet(snippet_id):
             return render_template("password.html", snippet_id=snippet_id)
 
     if snippet_data.get("burn_after_read"):
-        if snippet_data.get("views", 0) >= 1:
+        if snippet_data.get("views", 0) >= 2:
             os.remove(filepath)
             abort(410)
         snippet_data["views"] = 1
