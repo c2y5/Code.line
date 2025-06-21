@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>code.line</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <link rel="icon" href="{{ url_for('static', filename='favicon.png') }}" type="image/png">
+</head>
+<body>
+    <div class="container">
+        <h1><a href="{{ url_for('index') }}" style="text-decoration: none; color: inherit;">code.line</a></h1>
+        <div class="glass-card">
+            <form action="{{ url_for('new_snippet') }}" method="POST">
+                <input name="title" type="text" placeholder="Snippet title" required>
+                <textarea name="code" rows="10" placeholder="Your code here..." required></textarea>
+                <button type="submit">Save Snippet</button>
+            </form>
+        </div>
+    </div>
+</body>
+</html>
+

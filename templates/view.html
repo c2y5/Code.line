@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <title>code.line</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.11.1/styles/github-dark.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.11.1/highlight.min.js"></script>
+    <link rel="icon" href="{{ url_for('static', filename='favicon.png') }}" type="image/png">
+</head>
+<body>
+    <div class="container">
+        <header style="display: flex; align-items: center; gap: 1em; margin-bottom: 1em;">
+            <h1 style="margin: 0;">
+                <a href="{{ url_for('index') }}" style="text-decoration: none; color: inherit;">code.line</a>
+            </h1>
+            <button
+              id="copyLinkBtn"
+              title="Copy current page link"
+              style="
+                border: none;
+                color: white;
+                padding: 0.4em 1em;
+                border-radius: 4px;
+                cursor: pointer;
+                font-size: 1rem;
+              "
+            >
+              Copy Link
+            </button>
+        </header>
+
+        <div class="glass-card">
+            <h2>{{ title }}</h2>
+            <pre class="code-textbox"><code class="language-{{ language }}">{{ code }}</code></pre>
+            <p style="font-size: 0.9rem; color: #888;">ID: {{ snippet_id }}</p>
+        </div>
+    </div>
+
+    <script>
+        hljs.highlightAll();
+        document.getElementById("copyLinkBtn").addEventListener("click", function () {
+            const snippetURL = window.location.href;
+            navigator.clipboard.writeText(snippetURL).then(
+            () => {
+                alert("Link copied to clipboard!");
+            },
+            (err) => {
+                alert("Failed to copy link: " + err);
+            }
+            );
+        });
+    </script>
+</body>
+</html>
