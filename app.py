@@ -4,6 +4,8 @@ import secrets
 import base64
 from datetime import datetime, timedelta
 import json
+from utils.aes import aes_encrypt, aes_decrypt
+import hashlib
 
 app = Flask(__name__)
 app.secret_key = secrets.token_hex(16)
@@ -59,6 +61,13 @@ def new_snippet():
     except Exception as e:
         return f"Failed to decode code: {str(e)}", 400
 
+    password_hash = None
+    if password:
+        password_hash = hashlib.sha256(password.encode()).hexdigest()
+        decoded_code = aes_encrypt(decoded_code.encode('utf-8'), password)
+
+        decoded_code = base64.b64encode(decoded_code).decode('utf-8')
+
     while True:
         snippet_id = generate_id()
         snippet_path = os.path.join(SNIPPET_FOLDER, f"{snippet_id}.json")
@@ -68,7 +77,7 @@ def new_snippet():
     snippet_data = {
         "title": title,
         "code": decoded_code,
-        "password": password,
+        "password_hash": password_hash,
         "expires_at": calculate_expiration(expiration_hours).isoformat() if expiration_hours != "0" else None, # type: ignore
         "burn_after_read": burn_after_read,
         "views": 0,
@@ -79,6 +88,33 @@ def new_snippet():
         json.dump(snippet_data, f)
 
     return redirect(url_for("view_snippet", snippet_id=snippet_id))
+
+@app.route("/getCode/<string:snippet_id>", methods=["GET"])
+def get_code(snippet_id):
+    if not snippet_id:
+        return jsonify({"error": "Snippet ID is required"}), 400
+
+    filepath = os.path.join(SNIPPET_FOLDER, f"{snippet_id}.json")
+    if not os.path.exists(filepath):
+        return jsonify({"error": "Snippet not found"}), 404
+
+    with open(filepath, "r", encoding="utf-8") as f:
+        snippet_data = json.load(f)
+
+    if snippet_data.get("burn_after_read") or snippet_data.get("expires_at"):
+        return jsonify({"error": f"Please use the correct way to view code: https://codeline.iamsky.hackclub.app/{snippet_id}"}), 400
+
+    code = snippet_data["code"]
+    password_hash = snippet_data.get('password_hash')
+    encrypted = bool(password_hash)
+    unlocked = session.get('unlocked_snippets', {})
+
+    if encrypted:
+        password_input = unlocked.get(snippet_id)
+        code_bytes = base64.b64decode(code)
+        code = aes_decrypt(code_bytes, password_input).decode('utf-8')
+
+    return jsonify({"code": code})
 
 @app.route("/<string:snippet_id>", methods=["GET", "POST"])
 def view_snippet(snippet_id):
@@ -95,17 +131,20 @@ def view_snippet(snippet_id):
             os.remove(filepath)
             abort(410)
 
-    unlocked = session.get('unlocked_snippets', [])
+    unlocked = session.get('unlocked_snippets', {})
+    password_hash = snippet_data.get('password_hash')
+    encrypted = bool(password_hash)
 
-    if snippet_data.get("password") and snippet_id not in unlocked:
+    if encrypted and snippet_id not in unlocked:
         if request.method == "POST" and request.form.get("action") == "password_submit":
-            if request.form.get("password") != snippet_data.get("password"):
+            password_input = request.form.get("password")
+            if password_input and hashlib.sha256(password_input.encode()).hexdigest() != password_hash:
                 return render_template(
                     "password.html",
                     snippet_id=snippet_id,
                     error="Invalid password"
                 )
-            unlocked.append(snippet_id)
+            unlocked[snippet_id] = password_input
             session['unlocked_snippets'] = unlocked
         else:
             return render_template("password.html", snippet_id=snippet_id)
@@ -115,7 +154,15 @@ def view_snippet(snippet_id):
             snippet_data["content_viewed"] = True
             with open(filepath, "w", encoding="utf-8") as f:
                 json.dump(snippet_data, f)
-            return jsonify({"status": "success", "code": snippet_data["code"]})
+            code = snippet_data["code"]
+            if encrypted:
+                password_input = session.get('unlocked_snippets', {}).get(snippet_id)
+                code_bytes = base64.b64decode(code)
+                code = aes_decrypt(code_bytes, password_input).decode('utf-8')
+
+            _, ext = os.path.splitext(snippet_data["title"].lower())
+            language = EXTENSION_LANGUAGE_MAP.get(ext, "")
+            return jsonify({"status": "success", "code": code, "language": language})
 
     if snippet_data.get("burn_after_read"):
         if snippet_data.get("content_viewed"):
@@ -135,6 +182,12 @@ def view_snippet(snippet_id):
     with open(filepath, "w", encoding="utf-8") as f:
         json.dump(snippet_data, f)
 
+    code = snippet_data["code"]
+    if encrypted:
+        password_input = request.form.get("password") if request.method == "POST" else None
+        code_bytes = base64.b64decode(code)
+        code = aes_decrypt(code_bytes, password_input).decode('utf-8') if password_input else ""
+
     _, ext = os.path.splitext(snippet_data["title"].lower())
     language = EXTENSION_LANGUAGE_MAP.get(ext, "")
 
@@ -142,7 +195,6 @@ def view_snippet(snippet_id):
         "view.html",
         snippet_id=snippet_id,
         title=snippet_data["title"],
-        code=snippet_data["code"],
         language=language,
         burn_after_read=False,
         show_content=True

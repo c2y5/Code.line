@@ -5,6 +5,7 @@
     <title>code.line</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
     <link rel="icon" href="{{ url_for('static', filename='favicon.png') }}" type="image/png">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.11.0/highlight.min.js"></script>
 </head>
 <body>
     <div class="container">
@@ -41,49 +42,41 @@
 
     <script src="https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.47.0/min/vs/loader.min.js"></script>
     <script>
-        const languageMap = {
-            'python': 'python',
-            'javascript': 'javascript',
-            'html': 'html',
-            'css': 'css',
-            'json': 'json',
-            'bash': 'shell',
-            'java': 'java',
-            'c': 'c',
-            'cpp': 'cpp',
-            'ruby': 'ruby',
-            'go': 'go',
-            'typescript': 'typescript',
-            'php': 'php',
-            'rust': 'rust',
-            'markdown': 'markdown',
-            'sql': 'sql',
-            'xml': 'xml'
-        };
-
         require.config({ paths: { 'vs': 'https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.47.0/min/vs' }});
 
         require(['vs/editor/editor.main'], function() {
             const language = "{{ language }}";
-            const monacoLanguage = languageMap[language] || 'plaintext';
             const burnAfterRead = {{ burn_after_read|tojson }};
+            const pathParts = window.location.pathname.split('/').filter(Boolean); 
+            const snippetId = pathParts[pathParts.length - 1];
             
             if (!burnAfterRead) {
-                const codeContent = `{{ code | safe }}`;
-                
-                monaco.editor.create(document.getElementById('viewerContainer'), {
-                    value: codeContent,
-                    language: monacoLanguage,
-                    theme: 'vs-dark',
-                    readOnly: true,
-                    lineNumbers: 'on',
-                    wordWrap: 'on',
-                    scrollBeyondLastLine: false,
-                    minimap: { enabled: false },
-                    automaticLayout: true,
-                    renderWhitespace: 'none',
-                    fontSize: 14
-                });
+                fetch(`/getCode/${snippetId}`, {
+                        method: 'GET',
+                    })
+                    .then(response => {
+                        if (response.ok) {
+                            return response.json();
+                        }
+                        throw new Error('Failed to register view');
+                    })
+                    .then(data => {
+                        const detection = hljs.highlightAuto(data.code);
+                        const detectedLanguage = detection.language;
+                        monaco.editor.create(document.getElementById('viewerContainer'), {
+                            value: data.code,
+                            language: detectedLanguage || 'plaintext',
+                            theme: 'vs-dark',
+                            readOnly: true,
+                            lineNumbers: 'on',
+                            wordWrap: 'on',
+                            scrollBeyondLastLine: false,
+                            minimap: { enabled: false },
+                            automaticLayout: true,
+                            renderWhitespace: 'none',
+                            fontSize: 14
+                        });
+                    });
             } else {
                 document.getElementById('viewButton').addEventListener('click', function() {
                     fetch(window.location.href, {
@@ -103,10 +96,12 @@
                         if (data.status === "success") {
                             const viewerContainer = document.getElementById('viewerContainer');
                             viewerContainer.classList.remove('hidden');
+                            const detection = hljs.highlightAuto(data.code);
+                            const detectedLanguage = detection.language;
                             
                             monaco.editor.create(viewerContainer, {
                                 value: data.code,
-                                language: monacoLanguage,
+                                language: detectedLanguage || 'plaintext',
                                 theme: 'vs-dark',
                                 readOnly: true,
                                 lineNumbers: 'on',
