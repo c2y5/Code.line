@@ -41,8 +41,11 @@ def new_snippet():
     if not title or not code:
         return "Both title and code are required.", 400
 
-    snippet_id = generate_id()
-    snippet_path = os.path.join(SNIPPET_FOLDER, f"{snippet_id}.txt")
+    while True:
+        snippet_id = generate_id()
+        snippet_path = os.path.join(SNIPPET_FOLDER, f"{snippet_id}.txt")
+        if not os.path.exists(snippet_path):
+            break
 
     with open(snippet_path, "w", encoding="utf-8") as f:
         f.write(title.strip() + "\n")
