@@ -70,6 +70,9 @@ code.line/
 │   └── style.css               # Custom CSS styles
 ├── templates/
 │   ├── index.html              # Homepage with snippet submission form
+│   ├── password.html           # Password page for password-locked snippets
+│   ├── 404.html                # Error page for snippet not found
+│   ├── 410.html                # Error page for expired snippets
 │   └── view.html               # Snippet display page with syntax highlighting
 ├── app.py                      # Flask app main script
 └── README.md                   # Project README file

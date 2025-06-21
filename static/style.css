@@ -60,7 +60,6 @@ textarea::placeholder {
   color: rgba(255, 255, 255, 0.6);
 }
 
-
 button {
   display: inline-block;
   padding: 0.7rem 1.5rem;
@@ -113,25 +112,247 @@ pre {
   white-space: pre-wrap;
 }
 
-
 .code-textbox {
-    line-height: 0.75;
-    margin: 0;
-    padding: 1em;
-    white-space: pre;
-    font-family: monospace;
-    font-size: 1rem;
-    background-color: #0d1117;
-    border: 1px solid #ccc;
-    border-radius: 4px;
-    overflow-x: auto;
-    max-height: 300px;
-    overflow-y: auto;
+  position: relative;
+  margin: 0;
+  padding: 0;
+  font-family: "GraviticaMono", monospace;
+  font-size: 1rem;
+  background-color: #0d1117;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  overflow: auto;
+  max-height: 300px;
+  line-height: 1.2;
 }
 
 .code-textbox code {
-    display: block;
-    margin: 0;
-    padding: 0;
-    line-height: 0.75;
+  display: block;
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  padding: 1em;
+  box-sizing: border-box;
+  white-space: pre;
+  font-family: inherit;
+  font-size: inherit;
+  line-height: inherit;
+}
+
+.hljs-ln-numbers {
+  -webkit-touch-callout: none;
+  -webkit-user-select: none;
+  -khtml-user-select: none;
+  -moz-user-select: none;
+  -ms-user-select: none;
+  user-select: none;
+  text-align: center;
+  color: #cccccc;
+  border-right: 1px solid #CCC;
+  vertical-align: top;
+  padding-right: 5px;
+}
+
+.form-options {
+    margin: 15px 0;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 15px;
+    align-items: flex-end;
+}
+
+.option-group {
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+    flex: 1;
+    min-width: 200px;
+}
+
+.option-group select option {
+    background-color: var(--bg);
+    color: var(--fg);
+    padding: 0.5rem;
+}
+
+.option-group label {
+    font-size: 14px;
+    color: rgba(255, 255, 255, 0.7);
+}
+
+.option-group input[type="password"],
+.option-group select {
+    padding: 0.7rem;
+    border-radius: 8px;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    background: rgba(255, 255, 255, 0.08);
+    color: var(--fg);
+    font-size: 1rem;
+    transition: all 0.2s ease;
+}
+
+.option-group input[type="password"]:focus,
+.option-group select:focus {
+    outline: none;
+    border-color: var(--accent);
+    box-shadow: 0 0 0 2px rgba(187, 134, 252, 0.2);
+}
+
+.option-group select:hover {
+    background-color: rgba(255, 255, 255, 0.12);
+}
+
+.checkbox-group {
+    display: flex;
+    align-items: center;
+    height: 100%;
+    padding-bottom: 5px;
+}
+
+.checkbox-group label {
+    display: flex;
+    align-items: center;
+    cursor: pointer;
+    font-size: 1rem;
+    color: var(--fg);
+    gap: 8px;
+}
+
+.checkbox-group input[type="checkbox"] {
+    appearance: none;
+    width: 18px;
+    height: 18px;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    border-radius: 4px;
+    background: rgba(255, 255, 255, 0.08);
+    position: relative;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.checkbox-group input[type="checkbox"]:hover {
+    background: rgba(255, 255, 255, 0.12);
+    border-color: rgba(255, 255, 255, 0.3);
+}
+
+.checkbox-group input[type="checkbox"]:checked {
+    background: var(--accent);
+    border-color: var(--accent);
+}
+
+.checkbox-group input[type="checkbox"]:checked::after {
+    content: "✓";
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    color: var(--bg);
+    font-size: 12px;
+    font-weight: bold;
+}
+
+.password-form {
+    max-width: 500px;
+    margin: 0 auto;
+}
+
+.password-form h2 {
+    margin-bottom: 1.5rem;
+    color: var(--fg);
+}
+
+.password-form .option-group {
+    margin-bottom: 1.5rem;
+}
+
+.password-form .option-group label {
+    font-size: 14px;
+    color: rgba(255, 255, 255, 0.7);
+    margin-bottom: 0.5rem;
+}
+
+.password-form .option-group input[type="password"] {
+    width: 100%;
+    padding: 0.7rem;
+    border-radius: 8px;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    background: rgba(255, 255, 255, 0.08);
+    color: var(--fg);
+    font-size: 1rem;
+}
+
+.password-form .option-group input[type="password"]::placeholder {
+    color: rgba(255, 255, 255, 0.6);
+}
+
+.password-form button {
+    width: 100%;
+    padding: 0.7rem 1.5rem;
+}
+
+.error-message {
+    color: #ff6b6b;
+    background: rgba(255, 107, 107, 0.1);
+    padding: 0.8rem;
+    border-radius: 8px;
+    margin-bottom: 1.5rem;
+    border: 1px solid rgba(255, 107, 107, 0.3);
+}
+
+.password-form form {
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+}
+
+.password-form button {
+    margin-top: 1.5rem;
+    width: 100%;
+    padding: 0.7rem 1.5rem;
+}
+
+.password-form .button-container {
+    margin-top: 1.5rem;
+    width: 100%;
+}
+
+.error-card {
+    text-align: center;
+    padding: 3rem 2rem;
+}
+
+.error-code {
+    font-size: 5rem;
+    font-weight: 700;
+    color: var(--accent);
+    line-height: 1;
+    margin-bottom: 1.5rem;
+}
+
+.error-card h2 {
+    margin-bottom: 1rem;
+    color: var(--accent-2);
+}
+
+.error-card p {
+    margin-bottom: 2rem;
+    color: rgba(255, 255, 255, 0.8);
+    max-width: 500px;
+    margin-left: auto;
+    margin-right: auto;
+}
+
+.home-button {
+    display: inline-block;
+    padding: 0.7rem 1.5rem;
+    background: var(--accent);
+    color: var(--bg);
+    border-radius: 8px;
+    text-decoration: none;
+    font-weight: 600;
+    transition: background 0.2s ease;
+}
+
+.home-button:hover {
+    background: var(--accent-2);
 }

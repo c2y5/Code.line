@@ -1,6 +1,9 @@
-from flask import Flask, render_template, request, redirect, url_for, abort
+from flask import Flask, render_template, request, redirect, url_for, abort, jsonify
 import os
 import secrets
+import base64
+from datetime import datetime, timedelta
+import json
 
 app = Flask(__name__)
 SNIPPET_FOLDER = "snippets"
@@ -29,6 +32,11 @@ EXTENSION_LANGUAGE_MAP = {
 def generate_id():
     return secrets.token_hex(8)
 
+def calculate_expiration(hours):
+    if not hours or int(hours) == 0:
+        return None
+    return datetime.now() + timedelta(hours=int(hours))
+
 @app.route("/")
 def index():
     return render_template("index.html")
@@ -36,38 +44,87 @@ def index():
 @app.route("/new", methods=["POST"])
 def new_snippet():
     title = request.form.get("title")
-    code = request.form.get("code")
+    encoded_code = request.form.get("code")
+    password = request.form.get("password")
+    expiration_hours = request.form.get("expiration", "0")
+    burn_after_read = request.form.get("burn_after_read") == "on"
 
-    if not title or not code:
+    if not title or not encoded_code:
         return "Both title and code are required.", 400
+
+    try:
+        decoded_code = base64.b64decode(encoded_code).decode("utf-8")
+    except Exception as e:
+        return f"Failed to decode code: {str(e)}", 400
 
     while True:
         snippet_id = generate_id()
-        snippet_path = os.path.join(SNIPPET_FOLDER, f"{snippet_id}.txt")
+        snippet_path = os.path.join(SNIPPET_FOLDER, f"{snippet_id}.json")
         if not os.path.exists(snippet_path):
             break
 
+    snippet_data = {
+        "title": title.strip(),
+        "code": decoded_code,
+        "password": password,
+        "expires_at": calculate_expiration(expiration_hours).isoformat() if expiration_hours != "0" else None, # type: ignore
+        "burn_after_read": burn_after_read,
+        "views": 0
+    }
+
     with open(snippet_path, "w", encoding="utf-8") as f:
-        f.write(title.strip() + "\n")
-        f.write(code.strip())
+        json.dump(snippet_data, f)
 
     return redirect(url_for("view_snippet", snippet_id=snippet_id))
 
-@app.route("/<string:snippet_id>")
+@app.route("/<string:snippet_id>", methods=["GET", "POST"])
 def view_snippet(snippet_id):
-    filepath = os.path.join(SNIPPET_FOLDER, f"{snippet_id}.txt")
+    filepath = os.path.join(SNIPPET_FOLDER, f"{snippet_id}.json")
     if not os.path.exists(filepath):
         abort(404)
 
     with open(filepath, "r", encoding="utf-8") as f:
-        lines = f.readlines()
-        title = lines[0].strip()
-        code = "".join(lines[1:])
+        snippet_data = json.load(f)
 
-    _, ext = os.path.splitext(title.lower())
+    if snippet_data.get("expires_at"):
+        expires_at = datetime.fromisoformat(snippet_data["expires_at"])
+        if datetime.now() > expires_at:
+            os.remove(filepath)
+            abort(410)
+
+    if snippet_data.get("password"):
+        if request.method == "POST":
+            if request.form.get("password") != snippet_data["password"]:
+                return render_template("password.html", snippet_id=snippet_id, error="Invalid password")
+        else:
+            return render_template("password.html", snippet_id=snippet_id)
+
+    if snippet_data.get("burn_after_read"):
+        if snippet_data.get("views", 0) >= 1:
+            os.remove(filepath)
+            abort(410)
+        snippet_data["views"] = 1
+
+    snippet_data["views"] = snippet_data.get("views", 0) + 1
+    with open(filepath, "w", encoding="utf-8") as f:
+        json.dump(snippet_data, f)
+
+    _, ext = os.path.splitext(snippet_data["title"].lower())
     language = EXTENSION_LANGUAGE_MAP.get(ext, "")
 
-    return render_template("view.html", snippet_id=snippet_id, title=title, code=code, language=language)
+    return render_template("view.html", 
+                         snippet_id=snippet_id, 
+                         title=snippet_data["title"], 
+                         code=snippet_data["code"], 
+                         language=language)
+
+@app.errorhandler(404)
+def page_not_found(e):
+    return render_template('404.html'), 404
+
+@app.errorhandler(410)
+def snippet_expired(e):
+    return render_template('410.html'), 410
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=5000)

@@ -10,13 +10,48 @@
     <div class="container">
         <h1><a href="{{ url_for('index') }}" style="text-decoration: none; color: inherit;">code.line</a></h1>
         <div class="glass-card">
-            <form action="{{ url_for('new_snippet') }}" method="POST">
+            <form id="snippetForm" action="{{ url_for('new_snippet') }}" method="POST">
                 <input name="title" type="text" placeholder="Snippet title" required>
-                <textarea name="code" rows="10" placeholder="Your code here..." required></textarea>
+                <textarea id="codeInput" rows="10" placeholder="Your code here..." required></textarea>
+                
+                <div class="form-options">
+                    <div class="option-group">
+                        <label for="password">Password (optional):</label>
+                        <input name="password" type="password" id="password" placeholder="Protect with password">
+                    </div>
+                    
+                    <div class="option-group">
+                        <label for="expiration">Expires after:</label>
+                        <select name="expiration" id="expiration">
+                            <option value="0">Never</option>
+                            <option value="1">1 Hour</option>
+                            <option value="24">1 Day</option>
+                            <option value="168">1 Week</option>
+                            <option value="720">1 Month</option>
+                        </select>
+                    </div>
+                    
+                    <div class="option-group">
+                        <div class="checkbox-group">
+                            <label for="burn_after_read">
+                                <input type="checkbox" name="burn_after_read" id="burn_after_read">
+                                Burn after read
+                            </label>
+                        </div>
+                    </div>
+                </div>
+                <input type="hidden" name="code" id="encodedCode">
                 <button type="submit">Save Snippet</button>
             </form>
         </div>
     </div>
+
+    <script>
+        document.getElementById("snippetForm").addEventListener("submit", function (e) {
+            const rawCode = document.getElementById("codeInput").value;
+            const encoded = btoa(unescape(encodeURIComponent(rawCode)));
+            document.getElementById("encodedCode").value = encoded;
+        });
+    </script>
 </body>
 </html>
-

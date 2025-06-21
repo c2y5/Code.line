@@ -1,0 +1,20 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Snippet Expired - code.line</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <link rel="icon" href="{{ url_for('static', filename='favicon.png') }}" type="image/png">
+</head>
+<body>
+    <div class="container">
+        <h1><a href="{{ url_for('index') }}" style="text-decoration: none; color: inherit;">code.line</a></h1>
+        <div class="glass-card error-card">
+            <div class="error-code">410</div>
+            <h2>Snippet Expired</h2>
+            <p>This snippet has either expired or was set to be deleted after reading.</p>
+            <a href="{{ url_for('index') }}" class="home-button">Create New Snippet</a>
+        </div>
+    </div>
+</body>
+</html>
