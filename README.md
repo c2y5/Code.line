@@ -66,17 +66,19 @@ Open your browser at `http://localhost:5000` to create and view code snippets.
 
 ```
 code.line/
-├── snippets/                   # Folder where snippets are stored as text files (will be auto created)
+├── snippets/                   # Folder where snippets are stored (will be auto created)
 ├── static/
 │   ├── favicon.png             # Favicon of the website
 │   ├── GraviticaMono.otf       # Gravitica Mono font
 │   └── style.css               # Custom CSS styles
 ├── templates/
-│   ├── index.html              # Homepage with snippet submission form
+│   ├── index.html              # Homepage for snippet submission
 │   ├── password.html           # Password page for password-locked snippets
 │   ├── 404.html                # Error page for snippet not found
 │   ├── 410.html                # Error page for expired snippets
-│   └── view.html               # Snippet display page with syntax highlighting
+│   └── view.html               # Snippet display page
+├── utils/                      # Utility tool(s)
+│   └── aes.py                  # For password-protected encryptions
 ├── app.py                      # Flask app main script
 └── README.md                   # Project README file
 ```
