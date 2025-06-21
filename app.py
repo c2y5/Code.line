@@ -1,4 +1,4 @@
-from flask import Flask, render_template, request, redirect, url_for, abort, jsonify
+from flask import Flask, render_template, request, redirect, url_for, abort, jsonify, session
 import os
 import secrets
 import base64
@@ -6,6 +6,8 @@ from datetime import datetime, timedelta
 import json
 
 app = Flask(__name__)
+app.secret_key = secrets.token_hex(16)
+
 SNIPPET_FOLDER = "snippets"
 os.makedirs(SNIPPET_FOLDER, exist_ok=True)
 
@@ -93,56 +95,58 @@ def view_snippet(snippet_id):
             os.remove(filepath)
             abort(410)
 
-    if snippet_data.get("password"):
-        if request.method == "POST":
-            if request.form.get("password") != snippet_data["password"]:
-                return render_template("password.html", snippet_id=snippet_id, error="Invalid password")
-        else:
-            return render_template("password.html", snippet_id=snippet_id)
+    unlocked = session.get('unlocked_snippets', [])
 
-    if request.method == "POST":
-        if request.form.get("action") == "password_submit":
+    if snippet_data.get("password") and snippet_id not in unlocked:
+        if request.method == "POST" and request.form.get("action") == "password_submit":
             if request.form.get("password") != snippet_data.get("password"):
                 return render_template(
                     "password.html",
                     snippet_id=snippet_id,
                     error="Invalid password"
                 )
-        elif request.is_json and request.json and request.json.get("confirm_view"):
-            if snippet_data.get("burn_after_read"):
-                snippet_data["content_viewed"] = True
-                with open(filepath, "w", encoding="utf-8") as f:
-                    json.dump(snippet_data, f)
-                return jsonify({"status": "success", "code": snippet_data["code"]})
+            unlocked.append(snippet_id)
+            session['unlocked_snippets'] = unlocked
+        else:
+            return render_template("password.html", snippet_id=snippet_id)
+
+    if request.method == "POST" and request.is_json and request.json and request.json.get("confirm_view"):
+        if snippet_data.get("burn_after_read"):
+            snippet_data["content_viewed"] = True
+            with open(filepath, "w", encoding="utf-8") as f:
+                json.dump(snippet_data, f)
+            return jsonify({"status": "success", "code": snippet_data["code"]})
 
     if snippet_data.get("burn_after_read"):
-        if snippet_data.get("content_viewed", False):
+        if snippet_data.get("content_viewed"):
             os.remove(filepath)
             abort(410)
-        if request.method == "GET":
-            return render_template("view.html",
-                                snippet_id=snippet_id,
-                                title=snippet_data["title"],
-                                code="",
-                                language="",
-                                burn_after_read=True,
-                                show_content=False)
+        return render_template(
+            "view.html",
+            snippet_id=snippet_id,
+            title=snippet_data["title"],
+            code="",
+            language="",
+            burn_after_read=True,
+            show_content=False
+        )
 
-    if not snippet_data.get("burn_after_read") or snippet_data.get("content_viewed", False):
-        snippet_data["views"] = snippet_data.get("views", 0) + 1
-        with open(filepath, "w", encoding="utf-8") as f:
-            json.dump(snippet_data, f)
+    snippet_data["views"] = snippet_data.get("views", 0) + 1
+    with open(filepath, "w", encoding="utf-8") as f:
+        json.dump(snippet_data, f)
 
     _, ext = os.path.splitext(snippet_data["title"].lower())
     language = EXTENSION_LANGUAGE_MAP.get(ext, "")
 
-    return render_template("view.html",
-                         snippet_id=snippet_id,
-                         title=snippet_data["title"],
-                         code=snippet_data["code"],
-                         language=language,
-                         burn_after_read=snippet_data.get("burn_after_read", False),
-                         show_content=True)
+    return render_template(
+        "view.html",
+        snippet_id=snippet_id,
+        title=snippet_data["title"],
+        code=snippet_data["code"],
+        language=language,
+        burn_after_read=False,
+        show_content=True
+    )
 
 @app.errorhandler(404)
 def page_not_found(e):
