@@ -63,7 +63,7 @@ Open your browser at `http://localhost:5000` to create and view code snippets.
 
 ```
 code.line/
-├── snippets/                   # Folder where snippets are stored as text files
+├── snippets/                   # Folder where snippets are stored as text files (will be auto created)
 ├── static/
 │   ├── favicon.png             # Favicon of the website
 │   ├── GraviticaMono.otf       # Gravitica Mono font
