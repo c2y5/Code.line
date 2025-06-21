@@ -17,6 +17,9 @@
 * View saved snippets with syntax highlighting using Highlight.js dark theme.
 * Unique snippet URLs generated securely with random IDs.
 * Minimal dependencies and easy to run locally.
+* Password protected
+* Expiration date
+* Burn after read
 
 ---
 
