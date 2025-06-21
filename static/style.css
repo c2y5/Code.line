@@ -400,3 +400,46 @@ pre {
 .copy-button:hover {
     background: var(--accent-2);
 }
+
+
+.burn-warning {
+    background: rgba(255, 107, 107, 0.2);
+    border-left: 4px solid #ff6b6b;
+    padding: 1rem;
+    margin-bottom: 1.5rem;
+    border-radius: 0 4px 4px 0;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.burn-warning svg {
+    flex-shrink: 0;
+}
+
+.burn-warning p {
+    margin: 0;
+    color: #ff6b6b;
+}
+
+.view-confirmation {
+    text-align: center;
+    padding: 2rem;
+}
+
+.view-button {
+    background: var(--accent);
+    color: var(--bg);
+    border: none;
+    padding: 0.8rem 1.5rem;
+    border-radius: 8px;
+    font-size: 1rem;
+    font-weight: bold;
+    cursor: pointer;
+    transition: background 0.2s ease;
+    margin-top: 1rem;
+}
+
+.hidden {
+    display: none;
+}

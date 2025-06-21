@@ -19,7 +19,22 @@
 
         <div class="glass-card">
             <h2>{{ title }}</h2>
-            <div id="viewerContainer"></div>
+            
+            {% if burn_after_read %}
+            <div class="burn-warning">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M12 9V11M12 15H12.01M5.07183 19H18.9282C20.4678 19 21.4301 17.3333 20.6603 16L13.7321 4C12.9623 2.66667 11.0378 2.66667 10.268 4L3.33978 16C2.56998 17.3333 3.53223 19 5.07183 19Z" stroke="#ff6b6b" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+                <p>Warning: This snippet will be deleted after viewing!</p>
+            </div>
+            
+            <div class="view-confirmation" id="viewConfirmation">
+                <p>This snippet is set to be deleted after viewing.</p>
+                <button id="viewButton" class="view-button">View Snippet</button>
+            </div>
+            {% endif %}
+            
+            <div id="viewerContainer" {% if burn_after_read %}class="hidden"{% endif %}></div>
             <p style="font-size: 0.9rem; color: #888;">ID: {{ snippet_id }}</p>
         </div>
     </div>
@@ -51,27 +66,76 @@
         require(['vs/editor/editor.main'], function() {
             const language = "{{ language }}";
             const monacoLanguage = languageMap[language] || 'plaintext';
+            const burnAfterRead = {{ burn_after_read|tojson }};
             
-            const codeContent = `{{ code | safe }}`;
-            
-            const editor = monaco.editor.create(document.getElementById('viewerContainer'), {
-                value: codeContent,
-                language: monacoLanguage,
-                theme: 'vs-dark',
-                readOnly: true,
-                lineNumbers: 'on',
-                scrollBeyondLastLine: false,
-                minimap: { enabled: false },
-                automaticLayout: true,
-                renderWhitespace: 'none',
-                fontSize: 14
-            });
+            if (!burnAfterRead) {
+                const codeContent = `{{ code | safe }}`;
+                
+                monaco.editor.create(document.getElementById('viewerContainer'), {
+                    value: codeContent,
+                    language: monacoLanguage,
+                    theme: 'vs-dark',
+                    readOnly: true,
+                    lineNumbers: 'on',
+                    wordWrap: 'on',
+                    scrollBeyondLastLine: false,
+                    minimap: { enabled: false },
+                    automaticLayout: true,
+                    renderWhitespace: 'none',
+                    fontSize: 14
+                });
+            } else {
+                document.getElementById('viewButton').addEventListener('click', function() {
+                    fetch(window.location.href, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify({ confirm_view: true })
+                    })
+                    .then(response => {
+                        if (response.ok) {
+                            return response.json();
+                        }
+                        throw new Error('Failed to register view');
+                    })
+                    .then(data => {
+                        if (data.status === "success") {
+                            const viewerContainer = document.getElementById('viewerContainer');
+                            viewerContainer.classList.remove('hidden');
+                            
+                            monaco.editor.create(viewerContainer, {
+                                value: data.code,
+                                language: monacoLanguage,
+                                theme: 'vs-dark',
+                                readOnly: true,
+                                lineNumbers: 'on',
+                                wordWrap: 'on',
+                                scrollBeyondLastLine: false,
+                                minimap: { enabled: false },
+                                automaticLayout: true,
+                                renderWhitespace: 'none',
+                                fontSize: 14
+                            });
+                            
+                            document.getElementById('viewConfirmation').classList.add('hidden');
+                        } else {
+                            alert('Failed to register view. Please try again.');
+                        }
+                    })
+                    .catch(error => {
+                        console.error('Error:', error);
+                        alert('An error occurred. Please try again.');
+                    });
+                });
+            }
+        });
 
-            document.getElementById("copyLinkBtn").addEventListener("click", function() {
-                navigator.clipboard.writeText(window.location.href)
-                    .then(() => alert("Link copied to clipboard!"))
-                    .catch(err => alert("Failed to copy link: " + err));
-            });
+        document.getElementById("copyLinkBtn").addEventListener("click", function() {
+            navigator.clipboard.writeText(window.location.href)
+                .then(() => alert("Link copied to clipboard!"))
+                .catch(err => alert("Failed to copy link: " + err));
         });
     </script>
-</body
+</body>
+</html>

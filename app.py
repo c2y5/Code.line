@@ -30,7 +30,7 @@ EXTENSION_LANGUAGE_MAP = {
 }
 
 def generate_id():
-    return secrets.token_hex(8)
+    return secrets.token_hex(3)
 
 def calculate_expiration(hours):
     if not hours or int(hours) == 0:
@@ -43,14 +43,14 @@ def index():
 
 @app.route("/new", methods=["POST"])
 def new_snippet():
-    title = request.form.get("title")
+    title = request.form.get("title", "Untitled").strip()
     encoded_code = request.form.get("codeEncoded")
     password = request.form.get("password")
     expiration_hours = request.form.get("expiration", "0")
     burn_after_read = request.form.get("burn_after_read") == "on"
 
-    if not title or not encoded_code:
-        return "Both title and code are required.", 400
+    if not encoded_code:
+        return "Code is required.", 400
 
     try:
         decoded_code = base64.b64decode(encoded_code).decode("utf-8")
@@ -64,12 +64,13 @@ def new_snippet():
             break
 
     snippet_data = {
-        "title": title.strip(),
+        "title": title,
         "code": decoded_code,
         "password": password,
         "expires_at": calculate_expiration(expiration_hours).isoformat() if expiration_hours != "0" else None, # type: ignore
         "burn_after_read": burn_after_read,
-        "views": 0
+        "views": 0,
+        "content_viewed": False
     }
 
     with open(snippet_path, "w", encoding="utf-8") as f:
@@ -99,24 +100,41 @@ def view_snippet(snippet_id):
         else:
             return render_template("password.html", snippet_id=snippet_id)
 
+    if request.method == "POST" and request.json and request.json.get("confirm_view"):
+        if snippet_data.get("burn_after_read"):
+            snippet_data["content_viewed"] = True
+            with open(filepath, "w", encoding="utf-8") as f:
+                json.dump(snippet_data, f)
+            return jsonify({"status": "success", "code": snippet_data["code"]})
+
     if snippet_data.get("burn_after_read"):
-        if snippet_data.get("views", 0) >= 2:
+        if snippet_data.get("content_viewed", False):
             os.remove(filepath)
             abort(410)
-        snippet_data["views"] = 1
+        if request.method == "GET":
+            return render_template("view.html",
+                                snippet_id=snippet_id,
+                                title=snippet_data["title"],
+                                code="",
+                                language="",
+                                burn_after_read=True,
+                                show_content=False)
 
-    snippet_data["views"] = snippet_data.get("views", 0) + 1
-    with open(filepath, "w", encoding="utf-8") as f:
-        json.dump(snippet_data, f)
+    if not snippet_data.get("burn_after_read") or snippet_data.get("content_viewed", False):
+        snippet_data["views"] = snippet_data.get("views", 0) + 1
+        with open(filepath, "w", encoding="utf-8") as f:
+            json.dump(snippet_data, f)
 
     _, ext = os.path.splitext(snippet_data["title"].lower())
     language = EXTENSION_LANGUAGE_MAP.get(ext, "")
 
-    return render_template("view.html", 
-                         snippet_id=snippet_id, 
-                         title=snippet_data["title"], 
-                         code=snippet_data["code"], 
-                         language=language)
+    return render_template("view.html",
+                         snippet_id=snippet_id,
+                         title=snippet_data["title"],
+                         code=snippet_data["code"],
+                         language=language,
+                         burn_after_read=snippet_data.get("burn_after_read", False),
+                         show_content=True)
 
 @app.errorhandler(404)
 def page_not_found(e):
