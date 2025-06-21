@@ -81,6 +81,7 @@ code.line/
 
 * [Python 3.10+](https://python.org)
 * `Flask`
+* `gunicorn`
 
 ---
 
