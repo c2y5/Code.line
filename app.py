@@ -100,12 +100,20 @@ def view_snippet(snippet_id):
         else:
             return render_template("password.html", snippet_id=snippet_id)
 
-    if request.method == "POST" and request.json and request.json.get("confirm_view"):
-        if snippet_data.get("burn_after_read"):
-            snippet_data["content_viewed"] = True
-            with open(filepath, "w", encoding="utf-8") as f:
-                json.dump(snippet_data, f)
-            return jsonify({"status": "success", "code": snippet_data["code"]})
+    if request.method == "POST":
+        if request.form.get("action") == "password_submit":
+            if request.form.get("password") != snippet_data.get("password"):
+                return render_template(
+                    "password.html",
+                    snippet_id=snippet_id,
+                    error="Invalid password"
+                )
+        elif request.is_json and request.json and request.json.get("confirm_view"):
+            if snippet_data.get("burn_after_read"):
+                snippet_data["content_viewed"] = True
+                with open(filepath, "w", encoding="utf-8") as f:
+                    json.dump(snippet_data, f)
+                return jsonify({"status": "success", "code": snippet_data["code"]})
 
     if snippet_data.get("burn_after_read"):
         if snippet_data.get("content_viewed", False):
