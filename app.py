@@ -67,4 +67,4 @@ def view_snippet(snippet_id):
     return render_template("view.html", snippet_id=snippet_id, title=title, code=code, language=language)
 
 if __name__ == "__main__":
-    app.run(debug=True, host="0.0.0.0", port=5000)
+    app.run(host="0.0.0.0", port=5000)
