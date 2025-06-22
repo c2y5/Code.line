@@ -1,6 +1,6 @@
 # code.line 📝
 
-**code.line** is a simple minimalist web app to create, save, and view syntax-highlighted code snippets. It supports automatic language detection and presents code beautifully with Highlight.js.
+**code.line** is a simple minimalist web app to create, save, and view syntax-highlighted code snippets. It supports automatic language detection and presents code with monaco editor
 
 [Try it out yourself here!](https://codeline.iamsky.hackclub.app)
 
@@ -14,7 +14,7 @@
 
 * Create new code snippets with a title and code content.
 * Automatically detect syntax language based on file extension in the title (e.g. `.py`, `.js`, `.html`).
-* View saved snippets with syntax highlighting using Highlight.js dark theme.
+* View saved snippets with syntax highlighting using monaco editor
 * Unique snippet URLs generated securely with random IDs.
 * Minimal dependencies and easy to run locally.
 * Password protected
@@ -49,16 +49,6 @@ python app.py
 ```
 
 Open your browser at `http://localhost:5000` to create and view code snippets.
-
----
-
-## How it works 🔍
-
-* Submit a snippet via the form on the homepage by providing a **title** and **code**.
-* The app saves the snippet as a text file with a generated random ID.
-* Viewing a snippet URL (e.g. `/a1b2c3d4e5f6g7h8`) reads the file and parses the title and code.
-* The file extension in the title determines the syntax highlighting language.
-* The snippet code is rendered inside a styled page with Highlight.js.
 
 ---
 
