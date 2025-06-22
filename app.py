@@ -64,9 +64,9 @@ def new_snippet():
     password_hash = None
     if password:
         password_hash = hashlib.sha256(password.encode()).hexdigest()
-        decoded_code = aes_encrypt(decoded_code.encode('utf-8'), password)
+        decoded_code = aes_encrypt(decoded_code.encode("utf-8"), password)
 
-        decoded_code = base64.b64encode(decoded_code).decode('utf-8')
+        decoded_code = base64.b64encode(decoded_code).decode("utf-8")
 
     while True:
         snippet_id = generate_id()
@@ -105,14 +105,14 @@ def get_code(snippet_id):
         return jsonify({"error": f"Please use the correct way to view code: https://codeline.iamsky.hackclub.app/{snippet_id}"}), 400
 
     code = snippet_data["code"]
-    password_hash = snippet_data.get('password_hash')
+    password_hash = snippet_data.get("password_hash")
     encrypted = bool(password_hash)
-    unlocked = session.get('unlocked_snippets', {})
+    unlocked = session.get("unlocked_snippets", {})
 
     if encrypted:
         password_input = unlocked.get(snippet_id)
         code_bytes = base64.b64decode(code)
-        code = aes_decrypt(code_bytes, password_input).decode('utf-8')
+        code = aes_decrypt(code_bytes, password_input).decode("utf-8")
 
     return jsonify({"code": code})
 
@@ -131,8 +131,8 @@ def view_snippet(snippet_id):
             os.remove(filepath)
             abort(410)
 
-    unlocked = session.get('unlocked_snippets', {})
-    password_hash = snippet_data.get('password_hash')
+    unlocked = session.get("unlocked_snippets", {})
+    password_hash = snippet_data.get("password_hash")
     encrypted = bool(password_hash)
 
     if encrypted and snippet_id not in unlocked:
@@ -145,7 +145,7 @@ def view_snippet(snippet_id):
                     error="Invalid password"
                 )
             unlocked[snippet_id] = password_input
-            session['unlocked_snippets'] = unlocked
+            session["unlocked_snippets"] = unlocked
         else:
             return render_template("password.html", snippet_id=snippet_id)
 
@@ -156,9 +156,9 @@ def view_snippet(snippet_id):
                 json.dump(snippet_data, f)
             code = snippet_data["code"]
             if encrypted:
-                password_input = session.get('unlocked_snippets', {}).get(snippet_id)
+                password_input = session.get("unlocked_snippets", {}).get(snippet_id)
                 code_bytes = base64.b64decode(code)
-                code = aes_decrypt(code_bytes, password_input).decode('utf-8')
+                code = aes_decrypt(code_bytes, password_input).decode("utf-8")
 
             _, ext = os.path.splitext(snippet_data["title"].lower())
             language = EXTENSION_LANGUAGE_MAP.get(ext, "")
@@ -186,7 +186,7 @@ def view_snippet(snippet_id):
     if encrypted:
         password_input = request.form.get("password") if request.method == "POST" else None
         code_bytes = base64.b64decode(code)
-        code = aes_decrypt(code_bytes, password_input).decode('utf-8') if password_input else ""
+        code = aes_decrypt(code_bytes, password_input).decode("utf-8") if password_input else ""
 
     _, ext = os.path.splitext(snippet_data["title"].lower())
     language = EXTENSION_LANGUAGE_MAP.get(ext, "")
@@ -202,11 +202,11 @@ def view_snippet(snippet_id):
 
 @app.errorhandler(404)
 def page_not_found(e):
-    return render_template('404.html'), 404
+    return render_template("404.html"), 404
 
 @app.errorhandler(410)
 def snippet_expired(e):
-    return render_template('410.html'), 410
+    return render_template("410.html"), 410
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=5000)

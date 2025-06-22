@@ -2,6 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>code.line</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
     <link rel="icon" href="{{ url_for('static', filename='favicon.png') }}" type="image/png">
@@ -9,10 +10,8 @@
 </head>
 <body>
     <div class="container">
-        <header style="display: flex; align-items: center; gap: 1em; margin-bottom: 1em;">
-            <h1 style="margin: 0;">
-                <a href="{{ url_for('index') }}" style="text-decoration: none; color: inherit;">code.line</a>
-            </h1>
+        <header>
+            <h1><a href="{{ url_for('index') }}" style="text-decoration: none; color: inherit;">code.line</a></h1>
             <button id="copyLinkBtn" title="Copy current page link" class="copy-button">
                 Copy Link
             </button>
@@ -23,7 +22,7 @@
             
             {% if burn_after_read %}
             <div class="burn-warning">
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
                     <path d="M12 9V11M12 15H12.01M5.07183 19H18.9282C20.4678 19 21.4301 17.3333 20.6603 16L13.7321 4C12.9623 2.66667 11.0378 2.66667 10.268 4L3.33978 16C2.56998 17.3333 3.53223 19 5.07183 19Z" stroke="#ff6b6b" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
                 </svg>
                 <p>Warning: This snippet will be deleted after viewing!</p>
@@ -36,53 +35,55 @@
             {% endif %}
             
             <div id="viewerContainer" {% if burn_after_read %}class="hidden"{% endif %}></div>
-            <p style="font-size: 0.9rem; color: #888;">ID: {{ snippet_id }}</p>
+            <p class="snippet-id">ID: {{ snippet_id }}</p>
         </div>
     </div>
 
     <script src="https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.47.0/min/vs/loader.min.js"></script>
     <script>
-        require.config({ paths: { 'vs': 'https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.47.0/min/vs' }});
+        require.config({ paths: { "vs": "https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.47.0/min/vs" }});
 
-        require(['vs/editor/editor.main'], function() {
+        require(["vs/editor/editor.main"], function() {
             const language = "{{ language }}";
             const burnAfterRead = {{ burn_after_read|tojson }};
-            const pathParts = window.location.pathname.split('/').filter(Boolean); 
+            const pathParts = window.location.pathname.split("/").filter(Boolean); 
             const snippetId = pathParts[pathParts.length - 1];
+            
+            const fontSize = Math.min(Math.max(12, window.innerWidth / 100), 14);
             
             if (!burnAfterRead) {
                 fetch(`/getCode/${snippetId}`, {
-                        method: 'GET',
+                        method: "GET",
                     })
                     .then(response => {
                         if (response.ok) {
                             return response.json();
                         }
-                        throw new Error('Failed to register view');
+                        throw new Error("Failed to register view");
                     })
                     .then(data => {
                         const detection = hljs.highlightAuto(data.code);
                         const detectedLanguage = detection.language;
-                        monaco.editor.create(document.getElementById('viewerContainer'), {
+                        monaco.editor.create(document.getElementById("viewerContainer"), {
                             value: data.code,
-                            language: detectedLanguage || 'plaintext',
-                            theme: 'vs-dark',
+                            language: detectedLanguage || "plaintext",
+                            theme: "vs-dark",
                             readOnly: true,
-                            lineNumbers: 'on',
-                            wordWrap: 'on',
+                            lineNumbers: "on",
+                            wordWrap: "on",
                             scrollBeyondLastLine: false,
                             minimap: { enabled: false },
                             automaticLayout: true,
-                            renderWhitespace: 'none',
-                            fontSize: 14
+                            renderWhitespace: "none",
+                            fontSize: fontSize
                         });
                     });
             } else {
-                document.getElementById('viewButton').addEventListener('click', function() {
+                document.getElementById("viewButton").addEventListener("click", function() {
                     fetch(window.location.href, {
-                        method: 'POST',
+                        method: "POST",
                         headers: {
-                            'Content-Type': 'application/json',
+                            "Content-Type": "application/json",
                         },
                         body: JSON.stringify({ confirm_view: true })
                     })
@@ -90,37 +91,37 @@
                         if (response.ok) {
                             return response.json();
                         }
-                        throw new Error('Failed to register view');
+                        throw new Error("Failed to register view");
                     })
                     .then(data => {
                         if (data.status === "success") {
-                            const viewerContainer = document.getElementById('viewerContainer');
-                            viewerContainer.classList.remove('hidden');
+                            const viewerContainer = document.getElementById("viewerContainer");
+                            viewerContainer.classList.remove("hidden");
                             const detection = hljs.highlightAuto(data.code);
                             const detectedLanguage = detection.language;
                             
                             monaco.editor.create(viewerContainer, {
                                 value: data.code,
-                                language: detectedLanguage || 'plaintext',
-                                theme: 'vs-dark',
+                                language: detectedLanguage || "plaintext",
+                                theme: "vs-dark",
                                 readOnly: true,
-                                lineNumbers: 'on',
-                                wordWrap: 'on',
+                                lineNumbers: "on",
+                                wordWrap: "on",
                                 scrollBeyondLastLine: false,
                                 minimap: { enabled: false },
                                 automaticLayout: true,
-                                renderWhitespace: 'none',
-                                fontSize: 14
+                                renderWhitespace: "none",
+                                fontSize: fontSize
                             });
                             
-                            document.getElementById('viewConfirmation').classList.add('hidden');
+                            document.getElementById("viewConfirmation").classList.add("hidden");
                         } else {
-                            alert('Failed to register view. Please try again.');
+                            alert("Failed to register view. Please try again.");
                         }
                     })
                     .catch(error => {
-                        console.error('Error:', error);
-                        alert('An error occurred. Please try again.');
+                        console.error("Error:", error);
+                        alert("An error occurred. Please try again.");
                     });
                 });
             }
@@ -130,6 +131,14 @@
             navigator.clipboard.writeText(window.location.href)
                 .then(() => alert("Link copied to clipboard!"))
                 .catch(err => alert("Failed to copy link: " + err));
+        });
+
+        window.addEventListener("resize", function() {
+            if (window.editor) {
+                const newFontSize = Math.min(Math.max(12, window.innerWidth / 100), 14);
+                window.editor.updateOptions({ fontSize: newFontSize });
+                window.editor.layout();
+            }
         });
     </script>
 </body>
