@@ -175,7 +175,8 @@ def view_snippet(snippet_id):
             code="",
             language="",
             burn_after_read=True,
-            show_content=False
+            show_content=False,
+            show_raw=False,
         )
 
     snippet_data["views"] = snippet_data.get("views", 0) + 1
@@ -197,8 +198,41 @@ def view_snippet(snippet_id):
         title=snippet_data["title"],
         language=language,
         burn_after_read=False,
-        show_content=True
+        show_content=True,
+        show_raw=not encrypted and not snippet_data.get("burn_after_read", False),
     )
+
+@app.route("/<string:snippet_id>/raw", methods=["GET"])
+def view_snippet_raw(snippet_id):
+    filepath = os.path.join(SNIPPET_FOLDER, f"{snippet_id}.json")
+    if not os.path.exists(filepath):
+        abort(404)
+
+    with open(filepath, "r", encoding="utf-8") as f:
+        snippet_data = json.load(f)
+
+    if snippet_data.get("expires_at"):
+        expires_at = datetime.fromisoformat(snippet_data["expires_at"])
+        if datetime.now() > expires_at:
+            os.remove(filepath)
+            return "The snippet has expired", 410
+
+    password_hash = snippet_data.get("password_hash")
+    encrypted = bool(password_hash)
+
+    if encrypted :
+        return "Cannot view raw for password protected files", 400
+
+    if snippet_data.get("burn_after_read"):
+        return "Cannot view raw for burn after read files", 400
+
+    snippet_data["views"] = snippet_data.get("views", 0) + 1
+    with open(filepath, "w", encoding="utf-8") as f:
+        json.dump(snippet_data, f)
+
+    code = snippet_data["code"]
+
+    return code
 
 @app.errorhandler(404)
 def page_not_found(e):

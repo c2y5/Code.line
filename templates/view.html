@@ -15,6 +15,11 @@
             <button id="copyLinkBtn" title="Copy current page link" class="copy-button">
                 Copy Link
             </button>
+            {% if show_raw %}
+                <button id="viewRawBtn" title="View raw content" class="copy-button">
+                    View Raw
+                </button>
+            {% endif %}
         </header>
 
         <div class="glass-card">
@@ -41,6 +46,14 @@
 
     <script src="https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.47.0/min/vs/loader.min.js"></script>
     <script>
+        const pathParts = window.location.pathname.split("/").filter(Boolean); 
+        const snippetId = pathParts[pathParts.length - 1];
+        {% if show_raw %}
+            document.getElementById("viewRawBtn").addEventListener("click", function() {
+                window.location.href = `/${snippetId}/raw`;
+            });
+        {% endif %}
+
         require.config({ paths: { "vs": "https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.47.0/min/vs" }});
 
         require(["vs/editor/editor.main"], function() {
