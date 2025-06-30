@@ -2,7 +2,7 @@
 
 **code.line** is a simple minimalist web app to create, save, and view syntax-highlighted code snippets. It supports automatic language detection and presents code with monaco editor
 
-[Try it out yourself here!](https://codeline.iamsky.hackclub.app)
+[Try it out yourself here!](https://codeline.amsky.xyz/)
 
 ---
 
