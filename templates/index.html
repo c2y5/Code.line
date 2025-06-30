@@ -9,7 +9,14 @@
 </head>
 <body>
     <div class="container">
-        <h1><a href="{{ url_for('index') }}" style="text-decoration: none; color: inherit;">code.line</a></h1>
+        <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 20px;">
+            <h1 style="margin: 0;"><a href="{{ url_for('index') }}" style="text-decoration: none; color: inherit;">code.line</a></h1>
+            <div id="live-counter" style="font-family: sans-serif; color: #4CAF50; display: inline-flex; align-items: center; gap: 6px;">
+                <span style="width: 10px; height: 10px; border-radius: 50%; background: #4CAF50;" id="live-dot"></span>
+                <span id="live-count">Loading...</span>
+            </div>
+        </div>
+        
         <div class="glass-card">
             <form id="snippetForm" action="{{ url_for('new_snippet') }}" method="POST">
                 <input name="title" type="text" id="titleInput" placeholder="Snippet title (optional, e.g., script.py)">
@@ -158,6 +165,24 @@
         function clamp(min, vw, max) {
             return Math.min(max, Math.max(min, window.innerWidth * vw / 100));
         }
+
+        (async function() {
+            const dot = document.getElementById('live-dot');
+            const count = document.getElementById('live-count');
+            try {
+                const response = await fetch('https://live.alimad.xyz/ping?app=iamsky_codeline');
+                if (response.ok) {
+                const userCount = await response.text();
+                dot.style.background = '#4CAF50';
+                count.textContent = userCount + ' online';
+                } else {
+                throw new Error('API error');
+                }
+            } catch (error) {
+                dot.style.background = '#f44336';
+                count.textContent = 'Offline';
+            }
+            })();
     </script>
 </body>
 </html>
