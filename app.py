@@ -122,9 +122,17 @@ def get_code(snippet_id):
 
     logger.info(f"[/getCode] Fetching snippet with ID: {snippet_id}")
 
-    if snippet_data.get("burn_after_read") or snippet_data.get("expires_at"):
-        logger.error(f"[/getCode] Snippet {snippet_id} is either burned after read or expired")
+    if snippet_data.get("burn_after_read"):
+        logger.error(f"[/getCode] Snippet {snippet_id} is burned after read")
         return jsonify({"error": f"Please use the correct way to view code: https://codeline.amsky.xyz/{snippet_id}"}), 400
+
+    if snippet_data.get("expires_at"):
+        logger.info(f"[/getCode] Checking expiration for snippet {snippet_id}")
+        expires_at = datetime.fromisoformat(snippet_data["expires_at"])
+        if datetime.now() > expires_at:
+            logger.warning(f"[/getCode] Snippet {snippet_id} has expired")
+            os.remove(filepath)
+            return jsonify({"error": "Snippet has expired"}), 410
 
     code = snippet_data["code"]
     password_hash = snippet_data.get("password_hash")
