@@ -210,7 +210,7 @@ def view_snippet(snippet_id):
         language=language,
         burn_after_read=False,
         show_content=True,
-        show_raw=not encrypted and not snippet_data.get("burn_after_read", False),
+        show_raw=not encrypted and not snippet_data.get("burn_after_read", False)
     )
 
 @app.route("/<string:snippet_id>/raw", methods=["GET"])
@@ -266,6 +266,11 @@ def get_encrypted_password(snippet_id):
 
     with open(filepath, "r", encoding="utf-8") as f:
         snippet_data = json.load(f)
+
+    if snippet_data.get("expires_at"):
+        expires_at = datetime.fromisoformat(snippet_data["expires_at"])
+        if datetime.now() > expires_at:
+            return jsonify({"error": "Snippet has expired"}), 410
     
     if not snippet_data.get("password_hash"):
         return jsonify({"error": "Snippet is not password protected"}), 400
