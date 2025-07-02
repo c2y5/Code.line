@@ -51,6 +51,9 @@ def index():
 
 @app.route("/new", methods=["POST"])
 def new_snippet():
+    if not request.form:
+        return "No data provided.", 400
+
     title = request.form.get("title", "Untitled").strip()
     encoded_code = request.form.get("codeEncoded")
     password = request.form.get("password")
@@ -93,7 +96,7 @@ def new_snippet():
 
     return redirect(url_for("view_snippet", snippet_id=snippet_id))
 
-@app.route("/getCode/<string:snippet_id>", methods=["GET"])
+@app.route("/get_code/<string:snippet_id>", methods=["GET"])
 def get_code(snippet_id):
     if not snippet_id:
         return jsonify({"error": "Snippet ID is required"}), 400

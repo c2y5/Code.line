@@ -52,7 +52,7 @@
     <script>
         const pathParts = window.location.pathname.split("/").filter(Boolean); 
         const snippetId = pathParts[pathParts.length - 1];
-        const isPasswordProtected = {{ 'true' if not show_raw and not burn_after_read and not expires_at else 'false' }};
+        const isPasswordProtected = {{ "true" if not show_raw and not burn_after_read and not expires_at else "false" }};
 
         require.config({ "paths": { "vs": "https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.47.0/min/vs" }});
 
@@ -62,7 +62,7 @@
             const fontSize = Math.min(Math.max(12, window.innerWidth / 100), 14);
                 
             if (!burnAfterRead) {
-                fetch(`/getCode/${snippetId}`, {
+                fetch(`/get_code/${snippetId}`, {
                         "method": "GET",
                     })
                     .then(response => {
