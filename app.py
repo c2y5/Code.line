@@ -7,9 +7,12 @@ import json
 from utils.aes import aes_encrypt, aes_decrypt
 import hashlib
 from datetime import datetime
+from dotenv import load_dotenv
+
+load_dotenv()
 
 app = Flask(__name__)
-app.secret_key = secrets.token_hex(16)
+app.secret_key = os.getenv("APP_SECRET_KEY")
 
 SNIPPET_FOLDER = "snippets"
 os.makedirs(SNIPPET_FOLDER, exist_ok=True)
@@ -228,9 +231,6 @@ def view_snippet_raw(snippet_id):
     password_hash = snippet_data.get("password_hash")
     encrypted = bool(password_hash)
 
-    if encrypted :
-        return "Cannot view raw for password protected files", 400
-
     if snippet_data.get("burn_after_read"):
         return "Cannot view raw for burn after read files", 400
 
@@ -240,7 +240,48 @@ def view_snippet_raw(snippet_id):
 
     code = snippet_data["code"]
 
+    if encrypted:
+        password_input = request.args.get("pwd")
+        if not password_input:
+            return "Password is required for this snippet", 400
+        
+        try:
+            encrypted_bytes = base64.urlsafe_b64decode(password_input + ("=" * (len(password_input) % 4)))
+            password_input = aes_decrypt(encrypted_bytes, app.secret_key).decode("utf-8")
+            if hashlib.sha256(password_input.encode()).hexdigest() != password_hash:
+                return "Invalid password", 403
+
+            code_bytes = base64.b64decode(code)
+            code = aes_decrypt(code_bytes, password_input).decode("utf-8")
+        except Exception as e:
+            return f"Failed to process password: {str(e)}", 400
+
     return code
+
+@app.route("/<string:snippet_id>/get_pass", methods=["GET"])
+def get_encrypted_password(snippet_id):
+    filepath = os.path.join(SNIPPET_FOLDER, f"{snippet_id}.json")
+    if not os.path.exists(filepath):
+        return jsonify({"error": "Snippet not found"}), 404
+
+    with open(filepath, "r", encoding="utf-8") as f:
+        snippet_data = json.load(f)
+    
+    if not snippet_data.get("password_hash"):
+        return jsonify({"error": "Snippet is not password protected"}), 400
+
+    unlocked = session.get("unlocked_snippets", {})
+    password_input = unlocked.get(snippet_id)
+    
+    if not password_input:
+        return jsonify({"error": "Password not found in session"}), 403
+
+    try:
+        encrypted_bytes = aes_encrypt(password_input.encode("utf-8"), app.secret_key)
+        encrypted_password = base64.urlsafe_b64encode(encrypted_bytes).decode("utf-8").rstrip("=")
+        return jsonify({"encrypted_password": encrypted_password})
+    except Exception as e:
+        return jsonify({"error": "Failed to encrypt password"}), 500
 
 @app.errorhandler(404)
 def page_not_found(e):

@@ -15,7 +15,7 @@
             <button id="copyLinkBtn" title="Copy current page link" class="copy-button">
                 Copy Link
             </button>
-            {% if show_raw %}
+            {% if show_raw or (not show_raw and not burn_after_read) %}
                 <button id="viewRawBtn" title="View raw content" class="copy-button">
                     View Raw
                 </button>
@@ -52,25 +52,18 @@
     <script>
         const pathParts = window.location.pathname.split("/").filter(Boolean); 
         const snippetId = pathParts[pathParts.length - 1];
-        {% if show_raw %}
-            document.getElementById("viewRawBtn").addEventListener("click", function() {
-                window.location.href = `/${snippetId}/raw`;
-            });
-        {% endif %}
+        const isPasswordProtected = {{ "true" if not show_raw and not burn_after_read else "false" }};
 
-        require.config({ paths: { "vs": "https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.47.0/min/vs" }});
+        require.config({ "paths": { "vs": "https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.47.0/min/vs" }});
 
         require(["vs/editor/editor.main"], function() {
             const language = "{{ language }}";
             const burnAfterRead = {{ burn_after_read|tojson }};
-            const pathParts = window.location.pathname.split("/").filter(Boolean); 
-            const snippetId = pathParts[pathParts.length - 1];
-            
             const fontSize = Math.min(Math.max(12, window.innerWidth / 100), 14);
-            
+                
             if (!burnAfterRead) {
                 fetch(`/getCode/${snippetId}`, {
-                        method: "GET",
+                        "method": "GET",
                     })
                     .then(response => {
                         if (response.ok) {
@@ -82,27 +75,27 @@
                         const detection = hljs.highlightAuto(data.code);
                         const detectedLanguage = detection.language;
                         monaco.editor.create(document.getElementById("viewerContainer"), {
-                            value: data.code,
-                            language: detectedLanguage || "plaintext",
-                            theme: "vs-dark",
-                            readOnly: true,
-                            lineNumbers: "on",
-                            wordWrap: "on",
-                            scrollBeyondLastLine: false,
-                            minimap: { enabled: false },
-                            automaticLayout: true,
-                            renderWhitespace: "none",
-                            fontSize: fontSize
+                            "value": data.code,
+                            "language": detectedLanguage || "plaintext",
+                            "theme": "vs-dark",
+                            "readOnly": true,
+                            "lineNumbers": "on",
+                            "wordWrap": "on",
+                            "scrollBeyondLastLine": false,
+                            "minimap": { "enabled": false },
+                            "automaticLayout": true,
+                            "renderWhitespace": "none",
+                            "fontSize": fontSize
                         });
                     });
             } else {
                 document.getElementById("viewButton").addEventListener("click", function() {
                     fetch(window.location.href, {
-                        method: "POST",
-                        headers: {
+                        "method": "POST",
+                        "headers": {
                             "Content-Type": "application/json",
                         },
-                        body: JSON.stringify({ confirm_view: true })
+                        "body": JSON.stringify({ "confirm_view": true })
                     })
                     .then(response => {
                         if (response.ok) {
@@ -118,17 +111,17 @@
                             const detectedLanguage = detection.language;
                             
                             monaco.editor.create(viewerContainer, {
-                                value: data.code,
-                                language: detectedLanguage || "plaintext",
-                                theme: "vs-dark",
-                                readOnly: true,
-                                lineNumbers: "on",
-                                wordWrap: "on",
-                                scrollBeyondLastLine: false,
-                                minimap: { enabled: false },
-                                automaticLayout: true,
-                                renderWhitespace: "none",
-                                fontSize: fontSize
+                                "value": data.code,
+                                "language": detectedLanguage || "plaintext",
+                                "theme": "vs-dark",
+                                "readOnly": true,
+                                "lineNumbers": "on",
+                                "wordWrap": "on",
+                                "scrollBeyondLastLine": false,
+                                "minimap": { "enabled": false },
+                                "automaticLayout": true,
+                                "renderWhitespace": "none",
+                                "fontSize": fontSize
                             });
                             
                             document.getElementById("viewConfirmation").classList.add("hidden");
@@ -144,36 +137,70 @@
             }
         });
 
-        document.getElementById("copyLinkBtn").addEventListener("click", function() {
-            navigator.clipboard.writeText(window.location.href)
-                .then(() => alert("Link copied to clipboard!"))
-                .catch(err => alert("Failed to copy link: " + err));
+        document.getElementById("viewRawBtn")?.addEventListener("click", async function() {
+            try {
+                const response = await fetch(`/${snippetId}/get_pass`);
+                if (!response.ok) {
+                    throw new Error("Failed to get password");
+                }
+                const data = await response.json();
+                if (data.error) {
+                    throw new Error(data.error);
+                }
+                window.location.href = `/${snippetId}/raw?pwd=${encodeURIComponent(data.encrypted_password)}`;
+            } catch (err) {
+                alert(err.message);
+            }
+        });
+
+        document.getElementById("copyLinkBtn").addEventListener("click", async function() {
+            try {
+                let url = `${window.location.origin}/${snippetId}`;
+                
+                if (isPasswordProtected) {
+                    const response = await fetch(`/${snippetId}/get_pass`);
+                    if (!response.ok) {
+                        throw new Error("Failed to get password");
+                    }
+                    const data = await response.json();
+                    if (data.error) {
+                        throw new Error(data.error);
+                    }
+                    url += `?pwd=${encodeURIComponent(data.encrypted_password)}`;
+                }
+                
+                await navigator.clipboard.writeText(url);
+                alert("Link copied to clipboard!");
+            } catch (err) {
+                alert(`Error: ${err.message}`);
+            }
         });
 
         window.addEventListener("resize", function() {
             if (window.editor) {
                 const newFontSize = Math.min(Math.max(12, window.innerWidth / 100), 14);
-                window.editor.updateOptions({ fontSize: newFontSize });
+                window.editor.updateOptions({ "fontSize": newFontSize });
                 window.editor.layout();
             }
         });
+
         (async function() {
-            const dot = document.getElementById('live-dot');
-            const count = document.getElementById('live-count');
+            const dot = document.getElementById("live-dot");
+            const count = document.getElementById("live-count");
             try {
-                const response = await fetch('https://live.alimad.xyz/ping?app=iamsky_codeline');
+                const response = await fetch("https://live.alimad.xyz/ping?app=iamsky_codeline");
                 if (response.ok) {
-                const userCount = await response.text();
-                dot.style.background = '#4CAF50';
-                count.textContent = userCount + ' online';
+                    const userCount = await response.text();
+                    dot.style.background = "#4CAF50";
+                    count.textContent = userCount + " online";
                 } else {
-                throw new Error('API error');
+                    throw new Error("API error");
                 }
             } catch (error) {
-                dot.style.background = '#f44336';
-                count.textContent = 'Offline';
+                dot.style.background = "#f44336";
+                count.textContent = "Offline";
             }
-            })();
+        })();
     </script>
 </body>
 </html>
