@@ -36,7 +36,13 @@
 
    ```bash
    pip install -r requirements.txt
-    ```
+   ```
+
+3. Setup ``.env``
+   
+   ```
+   APP_SECRET_KEY=ABCD1234
+   ```
 
 ---
 
@@ -69,6 +75,7 @@ code.line/
 │   └── view.html               # Snippet display page
 ├── utils/                      # Utility tool(s)
 │   └── aes.py                  # For password-protected encryptions
+├── .env.example                # Example of the .env file
 ├── app.py                      # Flask app main script
 └── README.md                   # Project README file
 ```
@@ -81,12 +88,13 @@ code.line/
 * `Flask`
 * `gunicorn`
 * `cryptography`
+* `python-dotenv`
 
 ---
 
 ## License 📄
 
-This project is licensed under the MIT License — see the [LICENSE](./LICENSE) file for details.
+This project is licensed under the MIT License - see the [LICENSE](./LICENSE) file for details.
 
 ---
 
