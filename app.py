@@ -6,16 +6,7 @@ from datetime import datetime, timedelta
 import json
 from utils.aes import aes_encrypt, aes_decrypt
 import hashlib
-import logging
 from datetime import datetime
-
-file_handler = logging.FileHandler("app.log")
-console_handler = logging.StreamHandler()
-
-logger = logging.getLogger()
-logger.setLevel(logging.INFO)
-logger.addHandler(file_handler)
-logger.addHandler(console_handler)
 
 app = Flask(__name__)
 app.secret_key = secrets.token_hex(16)
@@ -44,7 +35,6 @@ EXTENSION_LANGUAGE_MAP = {
 }
 
 def generate_id():
-    logger.info("Generating new snippet ID")
     return secrets.token_hex(3)
 
 def calculate_expiration(hours):
@@ -58,7 +48,6 @@ def index():
 
 @app.route("/new", methods=["POST"])
 def new_snippet():
-    logger.info("[/new] Creating new snippet")
     title = request.form.get("title", "Untitled").strip()
     encoded_code = request.form.get("codeEncoded")
     password = request.form.get("password")
@@ -66,18 +55,15 @@ def new_snippet():
     burn_after_read = request.form.get("burn_after_read") == "on"
 
     if not encoded_code:
-        logger.error("[/new] Code is required but not provided")
         return "Code is required.", 400
 
     try:
         decoded_code = base64.b64decode(encoded_code).decode("utf-8")
     except Exception as e:
-        logger.error(f"[/new] Failed to decode code: {str(e)}")
         return f"Failed to decode code: {str(e)}", 400
 
     password_hash = None
     if password:
-        logger.info("[/new] Password provided, encrypting code")
         password_hash = hashlib.sha256(password.encode()).hexdigest()
         decoded_code = aes_encrypt(decoded_code.encode("utf-8"), password)
 
@@ -102,35 +88,27 @@ def new_snippet():
     with open(snippet_path, "w", encoding="utf-8") as f:
         json.dump(snippet_data, f)
 
-    logger.info(f"[/new] Snippet created with ID: {snippet_id}")
-
     return redirect(url_for("view_snippet", snippet_id=snippet_id))
 
 @app.route("/getCode/<string:snippet_id>", methods=["GET"])
 def get_code(snippet_id):
     if not snippet_id:
-        logger.error("[/getCode] Snippet ID is required but not provided")
         return jsonify({"error": "Snippet ID is required"}), 400
 
     filepath = os.path.join(SNIPPET_FOLDER, f"{snippet_id}.json")
     if not os.path.exists(filepath):
-        logger.error(f"[/getCode] Snippet with ID {snippet_id} not found")
         return jsonify({"error": "Snippet not found"}), 404
 
     with open(filepath, "r", encoding="utf-8") as f:
         snippet_data = json.load(f)
 
-    logger.info(f"[/getCode] Fetching snippet with ID: {snippet_id}")
 
     if snippet_data.get("burn_after_read"):
-        logger.error(f"[/getCode] Snippet {snippet_id} is burned after read")
         return jsonify({"error": f"Please use the correct way to view code: https://codeline.amsky.xyz/{snippet_id}"}), 400
 
     if snippet_data.get("expires_at"):
-        logger.info(f"[/getCode] Checking expiration for snippet {snippet_id}")
         expires_at = datetime.fromisoformat(snippet_data["expires_at"])
         if datetime.now() > expires_at:
-            logger.warning(f"[/getCode] Snippet {snippet_id} has expired")
             os.remove(filepath)
             return jsonify({"error": "Snippet has expired"}), 410
 
@@ -140,30 +118,24 @@ def get_code(snippet_id):
     unlocked = session.get("unlocked_snippets", {})
 
     if encrypted:
-        logger.info(f"[/getCode] Snippet {snippet_id} is encrypted, checking for password")
         password_input = unlocked.get(snippet_id)
         code_bytes = base64.b64decode(code)
         code = aes_decrypt(code_bytes, password_input).decode("utf-8")
 
-    logger.info(f"[/getCode] Successfully fetched code for snippet {snippet_id}")
     return jsonify({"code": code})
 
 @app.route("/<string:snippet_id>", methods=["GET", "POST"])
 def view_snippet(snippet_id):
-    logger.info(f"[/view_snippet] Accessing snippet with ID: {snippet_id}")
     filepath = os.path.join(SNIPPET_FOLDER, f"{snippet_id}.json")
     if not os.path.exists(filepath):
-        logger.error(f"[/view_snippet] Snippet with ID {snippet_id} not found")
         abort(404)
 
     with open(filepath, "r", encoding="utf-8") as f:
         snippet_data = json.load(f)
 
     if snippet_data.get("expires_at"):
-        logger.info(f"[/view_snippet] Checking expiration for snippet {snippet_id}")
         expires_at = datetime.fromisoformat(snippet_data["expires_at"])
         if datetime.now() > expires_at:
-            logger.warning(f"[/view_snippet] Snippet {snippet_id} has expired")
             os.remove(filepath)
             abort(410)
 
@@ -186,7 +158,6 @@ def view_snippet(snippet_id):
             return render_template("password.html", snippet_id=snippet_id)
 
     if request.method == "POST" and request.is_json and request.json and request.json.get("confirm_view"):
-        logger.info(f"[/view_snippet] Confirming view for snippet {snippet_id}")
         if snippet_data.get("burn_after_read"):
             snippet_data["content_viewed"] = True
             with open(filepath, "w", encoding="utf-8") as f:
@@ -203,7 +174,6 @@ def view_snippet(snippet_id):
 
     if snippet_data.get("burn_after_read"):
         if snippet_data.get("content_viewed"):
-            logger.info(f"[/view_snippet] Snippet {snippet_id} has been burned after read")
             os.remove(filepath)
             abort(410)
         return render_template(
@@ -230,8 +200,6 @@ def view_snippet(snippet_id):
     _, ext = os.path.splitext(snippet_data["title"].lower())
     language = EXTENSION_LANGUAGE_MAP.get(ext, "")
 
-    logger.info(f"[/view_snippet] Successfully viewed snippet {snippet_id}")
-
     return render_template(
         "view.html",
         snippet_id=snippet_id,
@@ -244,20 +212,16 @@ def view_snippet(snippet_id):
 
 @app.route("/<string:snippet_id>/raw", methods=["GET"])
 def view_snippet_raw(snippet_id):
-    logger.info(f"[/view_snippet_raw] Fetching raw code for snippet with ID: {snippet_id}")
     filepath = os.path.join(SNIPPET_FOLDER, f"{snippet_id}.json")
     if not os.path.exists(filepath):
-        logger.error(f"[/view_snippet_raw] Snippet with ID {snippet_id} not found")
         abort(404)
 
     with open(filepath, "r", encoding="utf-8") as f:
         snippet_data = json.load(f)
 
     if snippet_data.get("expires_at"):
-        logger.info(f"[/view_snippet_raw] Checking expiration for snippet {snippet_id}")
         expires_at = datetime.fromisoformat(snippet_data["expires_at"])
         if datetime.now() > expires_at:
-            logger.warning(f"[/view_snippet_raw] Snippet {snippet_id} has expired")
             os.remove(filepath)
             return "The snippet has expired", 410
 
@@ -265,11 +229,9 @@ def view_snippet_raw(snippet_id):
     encrypted = bool(password_hash)
 
     if encrypted :
-        logger.info(f"[/view_snippet_raw] Snippet {snippet_id} is encrypted, cannot view raw")
         return "Cannot view raw for password protected files", 400
 
     if snippet_data.get("burn_after_read"):
-        logger.info(f"[/view_snippet_raw] Snippet {snippet_id} is burn after read, cannot view raw")
         return "Cannot view raw for burn after read files", 400
 
     snippet_data["views"] = snippet_data.get("views", 0) + 1
@@ -278,18 +240,14 @@ def view_snippet_raw(snippet_id):
 
     code = snippet_data["code"]
 
-    logger.info(f"[/view_snippet_raw] Successfully fetched raw code for snippet {snippet_id}")
-
     return code
 
 @app.errorhandler(404)
 def page_not_found(e):
-    logger.error(f"[404] Page not found: {request.path}")
     return render_template("404.html"), 404
 
 @app.errorhandler(410)
 def snippet_expired(e):
-    logger.error(f"[410] Snippet expired or burned: {request.path}")
     return render_template("410.html"), 410
 
 if __name__ == "__main__":
